@@ -50,7 +50,7 @@ describe('protractor-protractor-image-comparison', () => {
                     ADBScreenshot = _.capabilities.nativeWebScreenshot || false;
 
                     browser.imageComparson = new imageComparison({
-                        baselineFolder: './test/baseline/mobile/',
+                        baselineFolder: './__test__/baseline/mobile/',
                         debug: false,
                         formatImageName: `{tag}-${logName}-{width}x{height}-dpr-{dpr}`,
                         nativeWebScreenshot: ADBScreenshot,
@@ -94,7 +94,7 @@ describe('protractor-protractor-image-comparison', () => {
                     ADBScreenshot = _.capabilities.nativeWebScreenshot || false;
 
                     browser.imageComparson = new imageComparison({
-                        baselineFolder: './test/baseline/mobile/',
+                        baselineFolder: './__test__/baseline/mobile/',
                         blockOutStatusBar: true,
                         formatImageName: `{tag}-${logName}-{width}x{height}-dpr-{dpr}`,
                         nativeWebScreenshot: ADBScreenshot,
@@ -144,7 +144,7 @@ describe('protractor-protractor-image-comparison', () => {
                     ADBScreenshot = _.capabilities.nativeWebScreenshot || false;
 
                     browser.imageComparson = new imageComparison({
-                        baselineFolder: './test/baseline/mobile/',
+                        baselineFolder: './__test__/baseline/mobile/',
                         formatImageName: `{tag}-${logName}-{width}x{height}-dpr-{dpr}`,
                         nativeWebScreenshot: ADBScreenshot,
                         screenshotPath: localConfig.screenshotFolder
@@ -211,7 +211,7 @@ describe('protractor-protractor-image-comparison', () => {
                     ADBScreenshot = _.capabilities.nativeWebScreenshot || false;
 
                     browser.imageComparson = new imageComparison({
-                        baselineFolder: './test/baseline/mobile/offsets/',
+                        baselineFolder: './__test__/baseline/mobile/offsets/',
                         blockOutStatusBar: true,
                         formatImageName: `{tag}-${logName}-{width}x{height}-dpr-{dpr}`,
                         nativeWebScreenshot: ADBScreenshot,

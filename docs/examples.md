@@ -96,4 +96,4 @@ function CucumberSteps() {
 module.exports = CucumberSteps;
 ```
 
-For more examples / usage see the [desktop](../test/desktop.spec.js) or [mobile](../test/desktop.spec.js) testcases.
+For more examples / usage see the [desktop](../__test__/desktop.spec.js) or [mobile](../test/desktop.spec.js) testcases.

@@ -1,7 +1,36 @@
-node_modules/
-.idea/
+# Logs
+logs
 *.log
-.tmp/
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage
+
+# Transpiled files
+build/
+
+# VS Code
+.vscode
+!.vscode/tasks.js
+
+# JetBrains IDEs
+.idea/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Misc
+.DS_Store
+
+# config
 perfecto.config.json
-coverage/
+
+# test dirs
+.tmp/
 localBaseline/
