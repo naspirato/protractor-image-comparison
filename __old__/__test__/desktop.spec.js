@@ -2,7 +2,7 @@
 
 const camelCase = require('camel-case');
 const fs = require('fs-extra');
-const imageComparison = require('../__old__/');
+const imageComparison = require('../');
 const localConfig = require('../local.config.json');
 const path = require('path');
 const screenshotPath = path.resolve(__dirname, `../${localConfig.screenshotFolder}/actual/`);
