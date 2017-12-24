@@ -7,7 +7,7 @@ import {calculateDprRectangles, getBufferedScreenshot, isMobile} from './utils';
 import {SAVE_TYPE} from "./constants";
 import {Rectangles, SaveCroppedScreenshotOptions, SaveScreenOptions} from "./interfaces";
 import {initSaveScreenOptions} from "./initOptions";
-import {getCurrentInstanceData, setCustomTestCSS} from "./currentInstance";
+import {getCurrentInstanceData, setCustomCss} from "./currentInstance";
 
 export class protractorImageComparison {
   private disableCSSAnimation: boolean;
@@ -146,8 +146,6 @@ export class protractorImageComparison {
    * @return {Promise<void>}
    */
   _saveCroppedScreenshot(args: SaveCroppedScreenshotOptions): Promise<void> {
-    console.log('join(args.folder, this._formatFileName(args)) = ',join(args.folder, this._formatFileName(args)))
-    console.log('args.rectangles = ',args.rectangles)
     return new PNGImage({
       imagePath: args.bufferedScreenshot,
       imageOutputPath: join(args.folder, this._formatFileName(args)),
@@ -202,54 +200,59 @@ export class protractorImageComparison {
    * @return {Promise<void>}
    * @public
    */
-  public async saveScreen(tag: string, options?: SaveScreenOptions): Promise<void> {
+  public saveScreen(tag: string, options?: SaveScreenOptions): Promise<void> {
     const saveScreenOptions: SaveScreenOptions = initSaveScreenOptions(
       this.disableCSSAnimation,
       this.hideScrollBars,
       options
     );
     SAVE_TYPE.screen = true;
-    const instanceData = await getCurrentInstanceData({
+
+    // @TODO: find out why the async await doesn't work here
+    return getCurrentInstanceData({
       SAVE_TYPE,
       devicePixelRatio: this.devicePixelRatio,
       testInBrowser: this.testInBrowser,
       nativeWebScreenshot: this.nativeWebScreenshot,
       addressBarShadowPadding: this.addressBarShadowPadding,
       toolBarShadowPadding: this.toolBarShadowPadding
-    });
+    })
+      .then(async (instanceData) => {
 
-    // Set some CSS
-    await setCustomTestCSS({
-      addressBarShadowPadding: instanceData.addressBarShadowPadding,
-      disableCSSAnimation: saveScreenOptions.disableCSSAnimation,
-      toolBarShadowPadding: instanceData.toolBarShadowPadding
-    });
+        // Set some CSS
+        await setCustomCss({
+          addressBarShadowPadding: instanceData.addressBarShadowPadding,
+          disableCSSAnimation: saveScreenOptions.disableCSSAnimation,
+          hideScrollBars: saveScreenOptions.hideScrollBars,
+          toolBarShadowPadding: instanceData.toolBarShadowPadding
+        });
 
-    // Create a screenshot and save it as a buffer
-    const bufferedScreenshot: Buffer = await getBufferedScreenshot();
-    const screenshotHeight: number = (bufferedScreenshot.readUInt32BE(20) / instanceData.devicePixelRatio); // width = 16
-    const rectangles: Rectangles = calculateDprRectangles({
-      height: screenshotHeight > instanceData.viewPortHeight ? screenshotHeight : instanceData.viewPortHeight,
-      width: instanceData.viewPortWidth,
-      x: 0,
-      y: 0
-    }, instanceData.devicePixelRatio);
+        // Create a screenshot and save it as a buffer
+        const bufferedScreenshot: Buffer = await getBufferedScreenshot();
+        const screenshotHeight: number = (bufferedScreenshot.readUInt32BE(20) / instanceData.devicePixelRatio); // width = 16
+        const rectangles: Rectangles = calculateDprRectangles({
+          height: screenshotHeight > instanceData.viewPortHeight ? screenshotHeight : instanceData.viewPortHeight,
+          width: instanceData.viewPortWidth,
+          x: 0,
+          y: 0
+        }, instanceData.devicePixelRatio);
 
-    await this._saveCroppedScreenshot({
-      browserHeight: instanceData.browserHeight,
-      browserName: instanceData.browserName,
-      browserWidth: instanceData.browserWidth,
-      bufferedScreenshot,
-      deviceName: instanceData.deviceName,
-      devicePixelRatio: instanceData.devicePixelRatio,
-      folder: this.actualFolder,
-      formatString: this.formatString,
-      isMobile: isMobile(instanceData.platformName),
-      name: instanceData.name,
-      logName: instanceData.logName,
-      rectangles,
-      tag,
-      testInBrowser: instanceData.testInBrowser,
-    });
+        await this._saveCroppedScreenshot({
+          browserHeight: instanceData.browserHeight,
+          browserName: instanceData.browserName,
+          browserWidth: instanceData.browserWidth,
+          bufferedScreenshot,
+          deviceName: instanceData.deviceName,
+          devicePixelRatio: instanceData.devicePixelRatio,
+          folder: this.actualFolder,
+          formatString: this.formatString,
+          isMobile: isMobile(instanceData.platformName),
+          name: instanceData.name,
+          logName: instanceData.logName,
+          rectangles,
+          tag,
+          testInBrowser: instanceData.testInBrowser,
+        });
+      });
   }
 }

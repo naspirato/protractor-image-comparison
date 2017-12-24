@@ -53,7 +53,7 @@ describe('protractor-image-comparison', () => {
     describe('basics', () => {
       it('should save the screen', () => {
 
-        browser.imageComparson.saveScreen(tagName)
+        return browser.imageComparson.saveScreen(tagName)
           .then(() => expect(helpers.fileExistSync(`${screenshotPath}/${tagName}-${logName}-${resolution}.png`)).toBe(true));
       });
 

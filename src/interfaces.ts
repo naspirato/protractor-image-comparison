@@ -1,3 +1,9 @@
+export interface SaveType {
+  element: boolean;
+  fullPage: boolean;
+  screen: boolean;
+}
+
 export interface SaveScreenOptions {
   disableCSSAnimation: boolean;
   hideScrollBars: boolean;
@@ -21,10 +27,10 @@ export interface BrowserData {
 }
 
 export interface RequestBrowserData {
-  browserName: string;
-  platformName: string;
-  defaultDevicePixelRatio: number;
   addressBarShadowPadding: number;
+  browserName: string;
+  defaultDevicePixelRatio: number;
+  platformName: string;
   toolBarShadowPadding: number;
 }
 
@@ -43,4 +49,32 @@ export interface SaveCroppedScreenshotOptions {
   rectangles: Rectangles;
   tag: string;
   testInBrowser: boolean;
+}
+
+export interface SetCustomCssOptions {
+  disableCSSAnimation: boolean;
+  hideScrollBars: boolean,
+  addressBarShadowPadding: number;
+  toolBarShadowPadding: number;
+}
+
+export interface RequestCurrentInstanceData {
+  SAVE_TYPE: SaveType;
+  devicePixelRatio: number;
+  testInBrowser: boolean;
+  nativeWebScreenshot: boolean;
+  addressBarShadowPadding: number;
+  toolBarShadowPadding: number;
+}
+
+export interface CurrentInstanceData extends BrowserData {
+  addressBarShadowPadding: number;
+  browserName:string;
+  deviceName:string
+  logName:string
+  name:string
+  nativeWebScreenshot:boolean;
+  platformName:string;
+  testInBrowser:boolean;
+  toolBarShadowPadding: number;
 }
