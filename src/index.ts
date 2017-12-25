@@ -1,13 +1,25 @@
-const camelCase = require('camel-case');
 import {ensureDirSync} from 'fs-extra';
 import {ok} from 'assert';
 import {join, normalize} from 'path';
-import * as PNGImage from 'png-image';
 import {calculateDprRectangles, getBufferedScreenshot, isMobile} from './utils';
-import {SAVE_TYPE} from "./constants";
-import {Rectangles, SaveCroppedScreenshotOptions, SaveScreenOptions} from "./interfaces";
+import {
+  ACTUAL_FOLDER,
+  DEFAULT_FILE_FORMAT_STRING,
+  DIFF_FOLDER,
+  DISABLE_CSS_ANIMATION,
+  HIDE_SCROLLBARS,
+  SAVE_TYPE,
+  TEMP_FULLSCREENSHOT_FOLDER,
+  TEST_IN_BROWSER
+} from "./constants";
+import {
+  CurrentInstanceData,
+  Rectangles,
+  SaveScreenOptions
+} from "./interfaces";
 import {initSaveScreenOptions} from "./initOptions";
 import {getCurrentInstanceData, setCustomCss} from "./currentInstance";
+import {saveCroppedScreenshot} from "./image";
 
 export class protractorImageComparison {
   private disableCSSAnimation: boolean;
@@ -25,10 +37,6 @@ export class protractorImageComparison {
   private actualFolder: string;
   private addressBarShadowPadding: number;
   // private androidOffsets: any;
-  private browserHeight: number;
-  private browserWidth: number;
-  private browserName: string;
-  private deviceName: string;
   private diffFolder: string;
   private devicePixelRatio: number;
   // private fullPageHeight: number;
@@ -36,14 +44,10 @@ export class protractorImageComparison {
   // private formatOptions: any;
   // private iosOffsets: any;
   // private isLastScreenshot: boolean;
-  private logName: string;
-  private name: string;
-  private platformName: string;
   // private resizeDimensions: number;
   // private screenshotHeight: number;
   private tempFullScreenFolder: string;
   // private fullPageScrollTimeout: number;
-  private testInBrowser: boolean;
   private toolBarShadowPadding: number;
   // private viewPortHeight: number;
   // private viewPortWidth: number;
@@ -56,9 +60,9 @@ export class protractorImageComparison {
     this.baseFolder = normalize(options.screenshotPath);
     // this.autoSaveBaseline = options.autoSaveBaseline || false;
     this.debug = options.debug || false;
-    this.disableCSSAnimation = options.disableCSSAnimation || false;
-    this.hideScrollBars = options.hideScrollBars !== false;
-    this.formatString = options.formatImageName || '{tag}-{browserName}-{width}x{height}-dpr-{dpr}';
+    this.disableCSSAnimation = options.disableCSSAnimation || DISABLE_CSS_ANIMATION;
+    this.hideScrollBars = options.hideScrollBars !== HIDE_SCROLLBARS;
+    this.formatString = options.formatImageName || DEFAULT_FILE_FORMAT_STRING;
 
     this.nativeWebScreenshot = !!options.nativeWebScreenshot;
     // this.blockOutStatusBar = !!options.blockOutStatusBar;
@@ -84,28 +88,20 @@ export class protractorImageComparison {
     //   toolBar: 44
     // };
 
-    this.actualFolder = join(this.baseFolder, 'actual');
+    this.actualFolder = join(this.baseFolder, ACTUAL_FOLDER);
     this.addressBarShadowPadding = 6;
     // this.androidOffsets = protractorImageComparison._mergeDefaultOptions(androidDefaultOffsets, androidOffsets);
-    this.browserHeight = 0;
-    this.browserName = '';
-    this.browserWidth = 0;
-    this.deviceName = '';
-    this.diffFolder = join(this.baseFolder, 'diff');
+    this.diffFolder = join(this.baseFolder, DIFF_FOLDER);
     this.devicePixelRatio = 1;
     // this.formatOptions = options.formatImageOptions || {};
     // this.fullPageHeight = 0;
     // this.fullPageWidth = 0;
     // this.iosOffsets = protractorImageComparison._mergeDefaultOptions(iosDefaultOffsets, iosOffsets);
     // this.isLastScreenshot = false;
-    this.logName = '';
-    this.name = '';
-    this.platformName = '';
     // this.resizeDimensions = 0;
     // this.screenshotHeight = 0;
-    this.tempFullScreenFolder = join(this.baseFolder, 'tempFullScreen');
+    this.tempFullScreenFolder = join(this.baseFolder, TEMP_FULLSCREENSHOT_FOLDER);
     // this.fullPageScrollTimeout = 1500;
-    this.testInBrowser = false;
     this.toolBarShadowPadding = 6;
     // this.viewPortHeight = 0;
     // this.viewPortWidth = 0;
@@ -117,69 +113,6 @@ export class protractorImageComparison {
     if (this.debug) {
       ensureDirSync(this.tempFullScreenFolder);
     }
-  }
-
-  /**
-   * Merges non-default options from optionsB into optionsA
-   *
-   * @method mergeDefaultOptions
-   * @param {object} optionsA
-   * @param {object} optionsB
-   * @return {object}
-   * @private
-   */
-  _mergeDefaultOptions(optionsA: any, optionsB: any): any {
-    optionsB = (typeof optionsB === 'object') ? optionsB : {};
-
-    for (let option in optionsB) {
-      if (optionsA.hasOwnProperty(option)) {
-        optionsA[option] = optionsB[option];
-      }
-    }
-
-    return optionsA;
-  }
-
-  /**
-   * Save a cropped screenshot
-   * @param {SaveCroppedScreenshotOptions} args
-   * @return {Promise<void>}
-   */
-  _saveCroppedScreenshot(args: SaveCroppedScreenshotOptions): Promise<void> {
-    return new PNGImage({
-      imagePath: args.bufferedScreenshot,
-      imageOutputPath: join(args.folder, this._formatFileName(args)),
-      cropImage: args.rectangles
-    }).runWithPromise();
-  }
-
-  /**
-   * _formatFileName
-   * @param {string} tag The tag that is used
-   * @returns {string} Returns a formatted string
-   * @private
-   */
-  _formatFileName(args) {
-    let defaults = {
-      'browserName': args.browserName,
-      'deviceName': args.deviceName,
-      'dpr': args.devicePixelRatio,
-      'height': args.browserHeight,
-      'logName': camelCase(args.logName),
-      'mobile': args.isMobile && args.testInBrowser ? args.browserName : args.isMobile ? 'app' : '',
-      'name': args.name,
-      'tag': args.tag,
-      'width': args.browserWidth
-    };
-    let formatString = args.formatString;
-
-    defaults = this._mergeDefaultOptions(defaults, {});
-
-    Object.keys(defaults).forEach(function (value) {
-      formatString = formatString.replace(`{${value}}`, defaults[value]);
-    });
-
-    return formatString + '.png';
   }
 
   /**
@@ -200,7 +133,7 @@ export class protractorImageComparison {
    * @return {Promise<void>}
    * @public
    */
-  public saveScreen(tag: string, options?: SaveScreenOptions): Promise<void> {
+  public async saveScreen(tag: string, options?: SaveScreenOptions): Promise<void> {
     const saveScreenOptions: SaveScreenOptions = initSaveScreenOptions(
       this.disableCSSAnimation,
       this.hideScrollBars,
@@ -208,51 +141,48 @@ export class protractorImageComparison {
     );
     SAVE_TYPE.screen = true;
 
-    // @TODO: find out why the async await doesn't work here
-    return getCurrentInstanceData({
+    const instanceData: CurrentInstanceData = await getCurrentInstanceData({
       SAVE_TYPE,
       devicePixelRatio: this.devicePixelRatio,
-      testInBrowser: this.testInBrowser,
+      testInBrowser: TEST_IN_BROWSER,
       nativeWebScreenshot: this.nativeWebScreenshot,
       addressBarShadowPadding: this.addressBarShadowPadding,
       toolBarShadowPadding: this.toolBarShadowPadding
-    })
-      .then(async (instanceData) => {
+    });
 
-        // Set some CSS
-        await setCustomCss({
-          addressBarShadowPadding: instanceData.addressBarShadowPadding,
-          disableCSSAnimation: saveScreenOptions.disableCSSAnimation,
-          hideScrollBars: saveScreenOptions.hideScrollBars,
-          toolBarShadowPadding: instanceData.toolBarShadowPadding
-        });
+    // Set some CSS
+    await setCustomCss({
+      addressBarShadowPadding: instanceData.addressBarShadowPadding,
+      disableCSSAnimation: saveScreenOptions.disableCSSAnimation,
+      hideScrollBars: saveScreenOptions.hideScrollBars,
+      toolBarShadowPadding: instanceData.toolBarShadowPadding
+    });
 
-        // Create a screenshot and save it as a buffer
-        const bufferedScreenshot: Buffer = await getBufferedScreenshot();
-        const screenshotHeight: number = (bufferedScreenshot.readUInt32BE(20) / instanceData.devicePixelRatio); // width = 16
-        const rectangles: Rectangles = calculateDprRectangles({
-          height: screenshotHeight > instanceData.viewPortHeight ? screenshotHeight : instanceData.viewPortHeight,
-          width: instanceData.viewPortWidth,
-          x: 0,
-          y: 0
-        }, instanceData.devicePixelRatio);
+    // Create a screenshot and save it as a buffer
+    const bufferedScreenshot: Buffer = await getBufferedScreenshot();
+    const screenshotHeight: number = (bufferedScreenshot.readUInt32BE(20) / instanceData.devicePixelRatio); // width = 16
+    const rectangles: Rectangles = calculateDprRectangles({
+      height: screenshotHeight > instanceData.viewPortHeight ? screenshotHeight : instanceData.viewPortHeight,
+      width: instanceData.viewPortWidth,
+      x: 0,
+      y: 0
+    }, instanceData.devicePixelRatio);
 
-        await this._saveCroppedScreenshot({
-          browserHeight: instanceData.browserHeight,
-          browserName: instanceData.browserName,
-          browserWidth: instanceData.browserWidth,
-          bufferedScreenshot,
-          deviceName: instanceData.deviceName,
-          devicePixelRatio: instanceData.devicePixelRatio,
-          folder: this.actualFolder,
-          formatString: this.formatString,
-          isMobile: isMobile(instanceData.platformName),
-          name: instanceData.name,
-          logName: instanceData.logName,
-          rectangles,
-          tag,
-          testInBrowser: instanceData.testInBrowser,
-        });
-      });
+    await saveCroppedScreenshot({
+      browserHeight: instanceData.browserHeight,
+      browserName: instanceData.browserName,
+      browserWidth: instanceData.browserWidth,
+      bufferedScreenshot,
+      deviceName: instanceData.deviceName,
+      devicePixelRatio: instanceData.devicePixelRatio,
+      folder: this.actualFolder,
+      formatString: this.formatString,
+      isMobile: isMobile(instanceData.platformName),
+      name: instanceData.name,
+      logName: instanceData.logName,
+      rectangles,
+      tag,
+      testInBrowser: instanceData.testInBrowser,
+    });
   }
 }

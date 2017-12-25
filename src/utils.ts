@@ -1,5 +1,5 @@
-// const camelCase = require('camel-case');
-import {Rectangles} from "./interfaces";
+const camelCase = require('camel-case');
+import {Rectangles, SaveCroppedScreenshotOptions} from "./interfaces";
 import {takeScreenshot} from "./webdriverMethods";
 
 /**
@@ -56,4 +56,31 @@ export function calculateDprRectangles(rectangles: Rectangles, devicePixelRatio:
   Object.keys(rectangles).map((key) => rectangles[key] *= devicePixelRatio);
 
   return rectangles;
+}
+
+/**
+ * Create a formatted filename based on a given fileformat
+ * @param {SaveCroppedScreenshotOptions} args
+ * @return {string}
+ */
+export function formatFileName(args: SaveCroppedScreenshotOptions) {
+  const defaults = {
+    'browserName': args.browserName,
+    'deviceName': args.deviceName,
+    'dpr': args.devicePixelRatio,
+    'height': args.browserHeight,
+    'logName': camelCase(args.logName),
+    'mobile': args.isMobile && args.testInBrowser ? args.browserName : args.isMobile ? 'app' : '',
+    'name': args.name,
+    'tag': args.tag,
+    'width': args.browserWidth
+  };
+  let formatString = args.formatString;
+
+  Object.keys(defaults)
+    .forEach((value) =>
+      formatString = formatString.replace(`{${value}}`, defaults[value])
+    );
+
+  return formatString + '.png';
 }

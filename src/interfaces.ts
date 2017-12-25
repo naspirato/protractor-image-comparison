@@ -69,12 +69,12 @@ export interface RequestCurrentInstanceData {
 
 export interface CurrentInstanceData extends BrowserData {
   addressBarShadowPadding: number;
-  browserName:string;
-  deviceName:string
-  logName:string
-  name:string
-  nativeWebScreenshot:boolean;
-  platformName:string;
-  testInBrowser:boolean;
+  browserName: string;
+  deviceName: string
+  logName: string
+  name: string
+  nativeWebScreenshot: boolean;
+  platformName: string;
+  testInBrowser: boolean;
   toolBarShadowPadding: number;
 }

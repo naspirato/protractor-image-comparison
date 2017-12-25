@@ -20,53 +20,48 @@ import {
  * Schedules a command to retrieve all the current instance data
  * @param {RequestCurrentInstanceData} args
  * @return {Promise<CurrentInstanceData>}
- *
- * @TODO: find out why the async await doesn't work here
  */
-export function getCurrentInstanceData(args: RequestCurrentInstanceData): Promise<CurrentInstanceData> {
+export async function getCurrentInstanceData(args: RequestCurrentInstanceData): Promise<CurrentInstanceData> {
   // Get the current configuration of the instance that is running
-  return getInstanceConfiguration()
-    .then(async (instanceConfig) => {
-      instanceConfig = instanceConfig.capabilities;
-      // Substract the needed data from the running instance
-      const browserName = (instanceConfig.browserName || '').toLowerCase();
-      const logName = instanceConfig.logName || '';
-      const name = instanceConfig.name || '';
-      const testInBrowser = browserName !== '';
+  const instanceConfig = (await getInstanceConfiguration()).capabilities;
+  // Substract the needed data from the running instance
+  const browserName = (instanceConfig.browserName || '').toLowerCase();
+  const logName = instanceConfig.logName || '';
+  const name = instanceConfig.name || '';
+  const testInBrowser = browserName !== '';
 
-      // For mobile
-      const platformName = (instanceConfig.platformName || '').toLowerCase();
-      const deviceName = (instanceConfig.deviceName || '').toLowerCase();
-      // args.nativeWebScreenshot of the constructor can be overruled by the capabilities when the constructor value is false
-      const nativeWebScreenshot = !args.nativeWebScreenshot ? !!instanceConfig.nativeWebScreenshot : args.nativeWebScreenshot;
-      const testInMobileBrowser = !args.SAVE_TYPE.screen && isMobile(platformName) && args.testInBrowser;
-      const addressBarShadowPadding = (testInMobileBrowser && ((nativeWebScreenshot && isAndroid(platformName)) || isIOS(platformName)))
-        ? args.addressBarShadowPadding
-        : 0;
-      const toolBarShadowPadding = (testInMobileBrowser && isIOS(platformName)) ? args.toolBarShadowPadding : 0;
+  // For mobile
+  const platformName = (instanceConfig.platformName || '').toLowerCase();
+  const deviceName = (instanceConfig.deviceName || '').toLowerCase();
+  // args.nativeWebScreenshot of the constructor can be overruled by the capabilities when the constructor value is false
+  const nativeWebScreenshot = !args.nativeWebScreenshot ? !!instanceConfig.nativeWebScreenshot : args.nativeWebScreenshot;
+  const testInMobileBrowser = !args.SAVE_TYPE.screen && isMobile(platformName) && args.testInBrowser;
+  const addressBarShadowPadding = (testInMobileBrowser && ((nativeWebScreenshot && isAndroid(platformName)) || isIOS(platformName)))
+    ? args.addressBarShadowPadding
+    : 0;
+  const toolBarShadowPadding = (testInMobileBrowser && isIOS(platformName)) ? args.toolBarShadowPadding : 0;
 
-      // Get the actual browserdata
-      const browserData = await getBrowserData({
-        browserName,
-        platformName,
-        defaultDevicePixelRatio: args.devicePixelRatio,
-        addressBarShadowPadding,
-        toolBarShadowPadding
-      });
+  // Get the actual browserdata
+  const browserData = await getBrowserData({
+    browserName,
+    platformName,
+    defaultDevicePixelRatio: args.devicePixelRatio,
+    addressBarShadowPadding,
+    toolBarShadowPadding
+  });
 
-      return {
-        addressBarShadowPadding,
-        browserName,
-        deviceName,
-        logName,
-        name,
-        nativeWebScreenshot,
-        platformName,
-        testInBrowser,
-        toolBarShadowPadding,
-        ...browserData
-      };
-    });
+  return {
+    addressBarShadowPadding,
+    browserName,
+    deviceName,
+    logName,
+    name,
+    nativeWebScreenshot,
+    platformName,
+    testInBrowser,
+    toolBarShadowPadding,
+    ...browserData
+  };
 }
 
 /**

@@ -5,3 +5,11 @@ export const SAVE_TYPE: SaveType = {
   fullPage: false,
   screen: false
 };
+
+export const TEST_IN_BROWSER = false;
+export const DISABLE_CSS_ANIMATION = false;
+export const HIDE_SCROLLBARS = false;
+export const DEFAULT_FILE_FORMAT_STRING = '{tag}-{browserName}-{width}x{height}-dpr-{dpr}';
+export const ACTUAL_FOLDER = 'actual';
+export const DIFF_FOLDER = 'diff';
+export const TEMP_FULLSCREENSHOT_FOLDER = 'tempFullScreen';
