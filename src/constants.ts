@@ -6,6 +6,11 @@ export const SAVE_TYPE: SaveType = {
   screen: false
 };
 
+export const AUTO_SAVE_BASELINE = false;
+export const DEBUG = false;
+export const IGNORE_ANTIALIASING = false;
+export const IGNORE_COLORS = false;
+export const IGNORE_TRANSPARENT_PIXEL = false;
 export const TEST_IN_BROWSER = false;
 export const DISABLE_CSS_ANIMATION = false;
 export const HIDE_SCROLLBARS = false;

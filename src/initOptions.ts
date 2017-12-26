@@ -1,4 +1,4 @@
-import {SaveScreenOptions} from "./interfaces";
+import {CheckScreenOptions, SaveScreenOptions} from "./interfaces";
 
 export function initSaveScreenOptions(disableCSSAnimation,
                                       hideScrollBars,
@@ -6,6 +6,22 @@ export function initSaveScreenOptions(disableCSSAnimation,
   return {
     disableCSSAnimation,
     hideScrollBars,
+    ...(options)
+  };
+}
+
+export function initCheckScreenOptions(blockOutStatusBar,
+                                       disableCSSAnimation,
+                                       ignoreAntialiasing,
+                                       ignoreColors,
+                                       ignoreTransparentPixel,
+                                       options?: CheckScreenOptions): CheckScreenOptions {
+  return {
+    blockOutStatusBar,
+    disableCSSAnimation,
+    ignoreAntialiasing,
+    ignoreColors,
+    ignoreTransparentPixel,
     ...(options)
   };
 }

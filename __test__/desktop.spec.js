@@ -50,9 +50,8 @@ describe('protractor-image-comparison', () => {
 
   // Only test this on chrome, also for ci
   if (browser.browserName === 'chrome') {
-    describe('basics', () => {
+    xdescribe('basics', () => {
       it('should save the screen', () => {
-
         return browser.imageComparson.saveScreen(tagName)
           .then(() => expect(helpers.fileExistSync(`${screenshotPath}/${tagName}-${logName}-${resolution}.png`)).toBe(true));
       });
@@ -101,27 +100,26 @@ describe('protractor-image-comparison', () => {
   }
 
 
-  xdescribe('compare screen', () => {
-
+  describe('compare screen', () => {
     it('should compare successful with a baseline', () => {
-      expect(browser.imageComparson.checkScreen(examplePage)).toEqual(0);
+      return expect(browser.imageComparson.checkScreen(examplePage)).toEqual(0);
     });
 
     it('should save a difference after failure', () => {
-      browser.executeScript('arguments[0].innerHTML = "Test Demo Page";', headerElement.getWebElement());
-      browser.imageComparson.checkScreen(examplePageFail)
+      return browser.executeScript('arguments[0].innerHTML = "Test Demo Page";', headerElement.getWebElement())
+        .then(() => browser.imageComparson.checkScreen(examplePageFail))
         .then(() => expect(helpers.fileExistSync(`${differencePath}/${examplePageFail}-${logName}-${resolution}.png`)).toBe(true));
     });
 
     it('should fail comparing with a baseline', () => {
-      browser.executeScript('arguments[0].innerHTML = "Test Demo Page";', headerElement.getWebElement())
+      return browser.executeScript('arguments[0].innerHTML = "Test Demo Page";', headerElement.getWebElement())
         .then(() => expect(browser.imageComparson.checkScreen(examplePageFail)).toBeGreaterThan(0));
     });
 
     it('should throw an error when no baseline is found', () => {
-      browser.imageComparson.checkScreen('noImage')
+      return browser.imageComparson.checkScreen('noImage')
         .then(() => fail(new Error('This should not succeed')))
-        .catch((error) => expect(error).toEqual('Image not found, saving current image as new baseline.'));
+        .catch((error) => expect(error.toString()).toContain('Image not found, if you want to save the image as a new baseline image please provide `autoSaveBaseline: true`.'));
     });
   });
 

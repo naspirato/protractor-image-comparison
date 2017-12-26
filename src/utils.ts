@@ -1,5 +1,6 @@
 const camelCase = require('camel-case');
-import {Rectangles, SaveCroppedScreenshotOptions} from "./interfaces";
+import {basename, join} from 'path';
+import {FormatFileNameOptions, ImageComparisonPaths, Rectangles, RequestImageComparisonPaths} from "./interfaces";
 import {takeScreenshot} from "./webdriverMethods";
 
 /**
@@ -63,7 +64,7 @@ export function calculateDprRectangles(rectangles: Rectangles, devicePixelRatio:
  * @param {SaveCroppedScreenshotOptions} args
  * @return {string}
  */
-export function formatFileName(args: SaveCroppedScreenshotOptions) {
+export function formatFileName(args: FormatFileNameOptions) {
   const defaults = {
     'browserName': args.browserName,
     'deviceName': args.deviceName,
@@ -83,4 +84,18 @@ export function formatFileName(args: SaveCroppedScreenshotOptions) {
     );
 
   return formatString + '.png';
+}
+
+/**
+ * Determines the image comparison paths with the tags for the paths + filenames
+ * @param {string} fileName the file name that is used
+ * @returns {Object}
+ * @private
+ */
+export function determineImageComparisonPaths(args:RequestImageComparisonPaths): ImageComparisonPaths {
+  return {
+    actualImage: join(args.actualFolder, args.fileName),
+    baselineImage: join(args.baselineFolder, args.fileName),
+    imageDiffPath: join(args.diffFolder, basename(args.fileName))
+  };
 }

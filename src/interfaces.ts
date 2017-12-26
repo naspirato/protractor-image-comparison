@@ -9,6 +9,22 @@ export interface SaveScreenOptions {
   hideScrollBars: boolean;
 }
 
+export interface CheckScreenOptions {
+  blockOutStatusBar: boolean;
+  blockOut?: BlockOutRectangles[];
+  disableCSSAnimation: boolean;
+  ignoreAntialiasing: boolean;
+  ignoreColors: boolean;
+  ignoreTransparentPixel: boolean;
+}
+
+export interface BlockOutRectangles {
+  x: number,
+  y: number,
+  height: number,
+  width: number
+}
+
 export interface Rectangles {
   x: number;
   y: number;
@@ -34,21 +50,24 @@ export interface RequestBrowserData {
   toolBarShadowPadding: number;
 }
 
-export interface SaveCroppedScreenshotOptions {
-  browserHeight: number;
+export interface FormatFileNameOptions {
   browserName: string;
-  browserWidth: number;
-  bufferedScreenshot: Buffer;
   deviceName: string;
   devicePixelRatio: number;
-  folder: string;
-  formatString: string;
-  isMobile: boolean;
-  name: string;
+  browserHeight: number;
   logName: string;
-  rectangles: Rectangles;
-  tag: string;
+  isMobile: boolean;
   testInBrowser: boolean;
+  name: string;
+  tag: string;
+  browserWidth: number;
+  formatString: string;
+}
+
+export interface SaveCroppedScreenshotOptions extends FormatFileNameOptions{
+  bufferedScreenshot: Buffer;
+  folder: string;
+  rectangles: Rectangles;
 }
 
 export interface SetCustomCssOptions {
@@ -77,4 +96,24 @@ export interface CurrentInstanceData extends BrowserData {
   platformName: string;
   testInBrowser: boolean;
   toolBarShadowPadding: number;
+}
+
+export interface RequestImageComparisonPaths{
+  actualFolder: string;
+  baselineFolder: string;
+  diffFolder: string;
+  fileName: string;
+}
+
+export interface ImageComparisonPaths{
+  actualImage: string;
+  baselineImage: string;
+  imageDiffPath: string;
+}
+
+export interface RequestImageExistsData{
+  actualFolder: string;
+  autoSaveBaseline: boolean;
+  baselineFolder: string;
+  fileName: string;
 }
