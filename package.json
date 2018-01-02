@@ -23,9 +23,7 @@
     "build": "tsc -p tsconfig.release.json",
     "watch": "tsc -w -p tsconfig.release.json",
     "lint": "tslint -t stylish --project \"tsconfig.json\"",
-    "pretest": "npm run lint",
-    "test-only": "jest --coverage",
-    "test:watch": "jest --watch"
+    "pretest": "npm run lint"
   },
   "repository": {
     "type": "git",

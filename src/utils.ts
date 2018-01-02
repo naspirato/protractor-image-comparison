@@ -1,6 +1,6 @@
 const camelCase = require('camel-case');
 import {basename, join} from 'path';
-import {FormatFileNameOptions, ImageComparisonPaths, Rectangles, RequestImageComparisonPaths} from "./interfaces";
+import {FormatFileNameOptions, ImageComparisonPaths, Rectangles, ImageData} from "./interfaces";
 import {takeScreenshot} from "./webdriverMethods";
 
 /**
@@ -87,12 +87,11 @@ export function formatFileName(args: FormatFileNameOptions) {
 }
 
 /**
- * Determines the image comparison paths with the tags for the paths + filenames
- * @param {string} fileName the file name that is used
- * @returns {Object}
- * @private
+ * Determines the image comparison paths with the tags for the paths + file names
+ * @param {ImageData} args
+ * @return {ImageComparisonPaths}
  */
-export function determineImageComparisonPaths(args:RequestImageComparisonPaths): ImageComparisonPaths {
+export function determineImageComparisonPaths(args:ImageData): ImageComparisonPaths {
   return {
     actualImage: join(args.actualFolder, args.fileName),
     baselineImage: join(args.baselineFolder, args.fileName),

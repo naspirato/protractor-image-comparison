@@ -1,6 +1,6 @@
 import {
   BrowserData,
-  CurrentInstanceData,
+  InstanceData,
   RequestCurrentInstanceData,
   RequestBrowserData,
   SetCustomCssOptions
@@ -19,9 +19,9 @@ import {
 /**
  * Schedules a command to retrieve all the current instance data
  * @param {RequestCurrentInstanceData} args
- * @return {Promise<CurrentInstanceData>}
+ * @return {Promise<InstanceData>}
  */
-export async function getCurrentInstanceData(args: RequestCurrentInstanceData): Promise<CurrentInstanceData> {
+export async function getCurrentInstanceData(args: RequestCurrentInstanceData): Promise<InstanceData> {
   // Get the current configuration of the instance that is running
   const instanceConfig = (await getInstanceConfiguration()).capabilities;
   // Substract the needed data from the running instance

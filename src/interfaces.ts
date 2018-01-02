@@ -13,6 +13,7 @@ export interface CheckScreenOptions {
   blockOutStatusBar: boolean;
   blockOut?: BlockOutRectangles[];
   disableCSSAnimation: boolean;
+  hideScrollBars: boolean;
   ignoreAntialiasing: boolean;
   ignoreColors: boolean;
   ignoreTransparentPixel: boolean;
@@ -32,6 +33,14 @@ export interface Rectangles {
   height: number;
 }
 
+export interface RequestBrowserData {
+  addressBarShadowPadding: number;
+  browserName: string;
+  defaultDevicePixelRatio: number;
+  platformName: string;
+  toolBarShadowPadding: number;
+}
+
 export interface BrowserData {
   browserHeight: number;
   browserWidth: number;
@@ -42,12 +51,20 @@ export interface BrowserData {
   viewPortWidth: number;
 }
 
-export interface RequestBrowserData {
+export interface InstanceData extends BrowserData {
   addressBarShadowPadding: number;
   browserName: string;
-  defaultDevicePixelRatio: number;
+  deviceName: string;
+  logName: string;
+  name: string;
+  nativeWebScreenshot: boolean;
   platformName: string;
+  testInBrowser: boolean;
   toolBarShadowPadding: number;
+}
+
+export interface TestInstanceData extends InstanceData{
+  fileName: string;
 }
 
 export interface FormatFileNameOptions {
@@ -64,8 +81,9 @@ export interface FormatFileNameOptions {
   formatString: string;
 }
 
-export interface SaveCroppedScreenshotOptions extends FormatFileNameOptions{
+export interface SaveCroppedScreenshotOptions{
   bufferedScreenshot: Buffer;
+  fileName: string;
   folder: string;
   rectangles: Rectangles;
 }
@@ -86,23 +104,11 @@ export interface RequestCurrentInstanceData {
   toolBarShadowPadding: number;
 }
 
-export interface CurrentInstanceData extends BrowserData {
-  addressBarShadowPadding: number;
-  browserName: string;
-  deviceName: string
-  logName: string
-  name: string
-  nativeWebScreenshot: boolean;
-  platformName: string;
-  testInBrowser: boolean;
-  toolBarShadowPadding: number;
-}
-
-export interface RequestImageComparisonPaths{
-  actualFolder: string;
-  baselineFolder: string;
-  diffFolder: string;
-  fileName: string;
+export interface Initializer extends RequestCurrentInstanceData{
+  disableCSSAnimation: boolean;
+  formatString: string;
+  hideScrollBars: boolean;
+  tag: string;
 }
 
 export interface ImageComparisonPaths{
@@ -111,9 +117,18 @@ export interface ImageComparisonPaths{
   imageDiffPath: string;
 }
 
-export interface RequestImageExistsData{
+export interface Folders {
   actualFolder: string;
-  autoSaveBaseline: boolean;
+  baseFolder: string;
   baselineFolder: string;
+  diffFolder: string;
+  tempFullScreenFolder: string;
+}
+
+export interface ImageData extends Folders {
   fileName: string;
+}
+
+export interface RequestImageExistsData extends ImageData{
+  autoSaveBaseline: boolean;
 }

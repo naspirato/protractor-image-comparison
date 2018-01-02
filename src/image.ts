@@ -1,7 +1,10 @@
 import * as PNGImage from 'png-image';
-import {RequestImageComparisonPaths, RequestImageExistsData, SaveCroppedScreenshotOptions} from "./interfaces";
+import {RequestImageExistsData, SaveCroppedScreenshotOptions} from "./interfaces";
 import {
-  calculateDprRectangles, determineImageComparisonPaths, formatFileName, isAndroid, isIOS,
+  calculateDprRectangles,
+  determineImageComparisonPaths,
+  isAndroid,
+  isIOS,
   isMobile
 } from "./utils";
 import {join} from "path";
@@ -17,7 +20,7 @@ import * as resembleJS from './lib/resemble';
 export async function saveCroppedScreenshot(args: SaveCroppedScreenshotOptions): Promise<void> {
   return new PNGImage({
     imagePath: args.bufferedScreenshot,
-    imageOutputPath: join(args.folder, formatFileName(args)),
+    imageOutputPath: join(args.folder, args.fileName),
     cropImage: args.rectangles
   }).runWithPromise();
 }
@@ -40,51 +43,51 @@ export function checkImageExists(imageData: RequestImageExistsData) {
     }
   }
 }
-// 'Image not found, if you want to save the image as a new baseline image please provide `autoSaveBaseline: true`.' to equal
-// 'Image not found, if you want to save the image as a new baseline image please provide `autoSaveBaseline: true`.'
+
 /**
  * Compare images against each other
+ * @TODO: rewrite docs here
  * @param {string} fileName The file name that is used
- * @param {object} compareOptions comparison options
- * @param {object} compareOptions.blockOut blockout with x, y, width and height values
- * @param {boolean} compareOptions.blockOutStatusBar blockout the statusbar yes or no, it will override the global
- * @param {boolean} compareOptions.ignoreAntialiasing compare images an discard anti aliasing
- * @param {boolean} compareOptions.ignoreColors Even though the images are in colour, the comparison wil compare 2 black/white images
- * @param {boolean} compareOptions.ignoreTransparentPixel Will ignore all pixels that have some transparency in one of the images
+ * @param {object} args.compareOptions comparison options
+ * @param {object} args.compareOptions.blockOut blockout with x, y, width and height values
+ * @param {boolean} args.compareOptions.blockOutStatusBar blockout the statusbar yes or no, it will override the global
+ * @param {boolean} args.compareOptions.ignoreAntialiasing compare images an discard anti aliasing
+ * @param {boolean} args.compareOptions.ignoreColors Even though the images are in colour, the comparison wil compare 2 black/white images
+ * @param {boolean} args.compareOptions.ignoreTransparentPixel Will ignore all pixels that have some transparency in one of the images
  * @returns {Promise}
  * @private
  */
-export async function executeImageComparison(args: RequestImageComparisonPaths, compareOptions, extra, instanceData) {
-  const imageComparisonPaths = determineImageComparisonPaths(args);
-  const ignoreRectangles = !!compareOptions.blockOut ? compareOptions.blockOut : [];
-  const blockOutStatusBar = !!compareOptions.blockOutStatusBar ? extra.blockOutStatusBar : compareOptions.blockOutStatusBar;
+export async function executeImageComparison(args):Promise<number> {
+  const imageComparisonPaths = determineImageComparisonPaths({...args.folders, fileName:args.testInstanceData.fileName});
+  const ignoreRectangles = !!args.compareOptions.blockOut ? args.compareOptions.blockOut : [];
+  const blockOutStatusBar = !!args.compareOptions.blockOutStatusBar ? args.blockOutStatusBar : args.compareOptions.blockOutStatusBar;
 
-  compareOptions.ignoreRectangles = !!compareOptions.ignoreRectangles ? compareOptions.ignoreRectangles.push(ignoreRectangles) : ignoreRectangles;
+  args.compareOptions.ignoreRectangles = !!args.compareOptions.ignoreRectangles ? args.compareOptions.ignoreRectangles.push(ignoreRectangles) : ignoreRectangles;
 
   // @TODO: make a private method of this
-  if (isMobile(instanceData.platformName) && blockOutStatusBar
-    && ((instanceData.nativeWebScreenshot && compareOptions.isScreen) || (isIOS(instanceData.platformName)))) {
-    const statusBarHeight = isAndroid(instanceData.platformName) ? extra.androidOffsets.statusBar : extra.iosOffsets.statusBar;
+  if (isMobile(args.testInstanceData.platformName) && blockOutStatusBar
+    && ((args.testInstanceData.nativeWebScreenshot && args.compareOptions.isScreen) || (isIOS(args.testInstanceData.platformName)))) {
+    const statusBarHeight = isAndroid(args.testInstanceData.platformName) ? args.offsets.android.statusBar : args.offsets.ios.statusBar;
     const statusBarBlockOut = [calculateDprRectangles({
       x: 0,
       y: 0,
       height: statusBarHeight,
-      width: instanceData.browserWidth
-    }, instanceData.devicePixelRatio)];
+      width: args.testInstanceData.browserWidth
+    }, args.testInstanceData.devicePixelRatio)];
 
-    compareOptions.ignoreRectangles = statusBarBlockOut;
+    args.compareOptions.ignoreRectangles = statusBarBlockOut;
   }
 
-  if (extra.debug) {
+  if (args.debug) {
     console.log('\n####################################################');
-    console.log('compareOptions = ', compareOptions);
+    console.log('args.compareOptions = ', args.compareOptions);
     console.log('####################################################\n');
   }
 
-  return new Promise(resolve => {
-    resembleJS(imageComparisonPaths.baselineImage, imageComparisonPaths.actualImage, compareOptions)
+  return new Promise<number>(resolve => {
+    resembleJS(imageComparisonPaths.baselineImage, imageComparisonPaths.actualImage, args.compareOptions)
       .onComplete(data => {
-        if (Number(data.misMatchPercentage) > 0 || extra.debug) {
+        if (Number(data.misMatchPercentage) > 0 || args.debug) {
           data.getDiffImage().pack().pipe(createWriteStream(imageComparisonPaths.imageDiffPath));
         }
         resolve(Number(data.misMatchPercentage));

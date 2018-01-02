@@ -1,53 +1,61 @@
 import {ensureDirSync} from 'fs-extra';
 import {ok} from 'assert';
 import {join, normalize} from 'path';
-import {calculateDprRectangles, formatFileName, getBufferedScreenshot, isMobile} from './utils';
+import {calculateDprRectangles, getBufferedScreenshot} from './utils';
 import {
   ACTUAL_FOLDER, AUTO_SAVE_BASELINE, DEBUG,
   DEFAULT_FILE_FORMAT_STRING,
   DIFF_FOLDER,
   DISABLE_CSS_ANIMATION,
-  HIDE_SCROLLBARS, IGNORE_ANTIALIASING, IGNORE_COLORS, IGNORE_TRANSPARENT_PIXEL,
+  HIDE_SCROLLBARS,
+  IGNORE_ANTIALIASING,
+  IGNORE_COLORS,
+  IGNORE_TRANSPARENT_PIXEL,
   SAVE_TYPE,
   TEMP_FULLSCREENSHOT_FOLDER,
   TEST_IN_BROWSER
 } from "./constants";
 import {
-  CheckScreenOptions,
-  CurrentInstanceData,
+  CheckScreenOptions, Folders,
   Rectangles,
-  SaveScreenOptions
+  SaveScreenOptions, TestInstanceData
 } from "./interfaces";
 import {initCheckScreenOptions, initSaveScreenOptions} from "./initOptions";
-import {getCurrentInstanceData, setCustomCss} from "./currentInstance";
 import {checkImageExists, executeImageComparison, saveCroppedScreenshot} from "./image";
+import {instanceInitializer} from "./initializer";
 
 export class protractorImageComparison {
   private disableCSSAnimation: boolean;
-  private baselineFolder: string;
-  private baseFolder: string;
   private autoSaveBaseline: boolean;
   private debug: boolean;
   private hideScrollBars: boolean;
+  private folders: Folders;
   private formatString: string;
   private nativeWebScreenshot: boolean;
   private blockOutStatusBar: boolean;
   private ignoreAntialiasing: boolean;
   private ignoreColors: boolean;
   private ignoreTransparentPixel: boolean;
-  private actualFolder: string;
   private addressBarShadowPadding: number;
-  private androidOffsets: any;
-  private diffFolder: string;
+  private androidOffsets: {
+    addressBar: number;
+    addressBarScrolled: number;
+    statusBar: number;
+    toolBar: number;
+  };
   private devicePixelRatio: number;
   // private fullPageHeight: number;
   // private fullPageWidth: number;
   // private formatOptions: any;
-  private iosOffsets: any;
+  private iosOffsets: {
+    addressBar: number;
+    addressBarScrolled: number;
+    statusBar: number;
+    toolBar: number;
+  };
   // private isLastScreenshot: boolean;
   // private resizeDimensions: number;
   // private screenshotHeight: number;
-  private tempFullScreenFolder: string;
   // private fullPageScrollTimeout: number;
   private toolBarShadowPadding: number;
   // private viewPortHeight: number;
@@ -57,9 +65,18 @@ export class protractorImageComparison {
     ok(options.baselineFolder, 'Image baselineFolder not given.');
     ok(options.screenshotPath, 'Image screenshotPath not given.');
 
-    this.baselineFolder = normalize(options.baselineFolder);
-    this.baseFolder = normalize(options.screenshotPath);
+    const baseFolder = normalize(options.screenshotPath);
+
+    this.folders = {
+      actualFolder: join(baseFolder, ACTUAL_FOLDER),
+      baselineFolder: normalize(options.baselineFolder),
+      baseFolder: normalize(options.screenshotPath),
+      diffFolder: join(baseFolder, DIFF_FOLDER),
+      tempFullScreenFolder: join(baseFolder, TEMP_FULLSCREENSHOT_FOLDER)
+    };
+
     this.autoSaveBaseline = options.autoSaveBaseline || AUTO_SAVE_BASELINE;
+
     this.debug = options.debug || DEBUG;
     this.disableCSSAnimation = options.disableCSSAnimation || DISABLE_CSS_ANIMATION;
     this.hideScrollBars = options.hideScrollBars !== HIDE_SCROLLBARS;
@@ -89,10 +106,8 @@ export class protractorImageComparison {
       toolBar: 44
     };
 
-    this.actualFolder = join(this.baseFolder, ACTUAL_FOLDER);
     this.addressBarShadowPadding = 6;
     this.androidOffsets = {...androidDefaultOffsets, ...androidOffsets};
-    this.diffFolder = join(this.baseFolder, DIFF_FOLDER);
     this.devicePixelRatio = 1;
     // this.formatOptions = options.formatImageOptions || {};
     // this.fullPageHeight = 0;
@@ -101,18 +116,17 @@ export class protractorImageComparison {
     // this.isLastScreenshot = false;
     // this.resizeDimensions = 0;
     // this.screenshotHeight = 0;
-    this.tempFullScreenFolder = join(this.baseFolder, TEMP_FULLSCREENSHOT_FOLDER);
     // this.fullPageScrollTimeout = 1500;
     this.toolBarShadowPadding = 6;
     // this.viewPortHeight = 0;
     // this.viewPortWidth = 0;
 
-    ensureDirSync(this.actualFolder);
-    ensureDirSync(this.baselineFolder);
-    ensureDirSync(this.diffFolder);
+    ensureDirSync(this.folders.actualFolder);
+    ensureDirSync(this.folders.baselineFolder);
+    ensureDirSync(this.folders.diffFolder);
 
     if (this.debug) {
-      ensureDirSync(this.tempFullScreenFolder);
+      ensureDirSync(this.folders.tempFullScreenFolder);
     }
   }
 
@@ -142,16 +156,18 @@ export class protractorImageComparison {
    * @param {boolean} options.blockOutStatusBar blockout the statusbar yes or no, it will override the global
    * @param {object} options.blockOut blockout with x, y, width and height values
    * @param {boolean} options.disableCSSAnimation enable or disable CSS animation
+   * @param {boolean} options.hideScrollBars hide or show scrollbars
    * @param {boolean} options.ignoreAntialiasing compare images an discard anti aliasing
    * @param {boolean} options.ignoreColors Even though the images are in colour, the comparison wil compare 2 black/white images
    * @param {boolean} options.ignoreTransparentPixel Will ignore all pixels that have some transparency in one of the images
    * @return {Promise} When the promise is resolved it will return the percentage of the difference
    * @public
    */
-  public async checkScreen(tag, options): Promise<void> {
+  public async checkScreen(tag, options): Promise<number> {
     const checkScreenOptions: CheckScreenOptions = initCheckScreenOptions(
       this.blockOutStatusBar,
       this.disableCSSAnimation,
+      this.hideScrollBars,
       this.ignoreAntialiasing,
       this.ignoreColors,
       this.ignoreTransparentPixel,
@@ -159,12 +175,16 @@ export class protractorImageComparison {
     );
     SAVE_TYPE.screen = true;
 
-    const instanceData: CurrentInstanceData = await getCurrentInstanceData({
-      SAVE_TYPE,
-      devicePixelRatio: this.devicePixelRatio,
-      testInBrowser: TEST_IN_BROWSER,
-      nativeWebScreenshot: this.nativeWebScreenshot,
+    const testInstanceData: TestInstanceData = await instanceInitializer({
       addressBarShadowPadding: this.addressBarShadowPadding,
+      devicePixelRatio: this.devicePixelRatio,
+      disableCSSAnimation: checkScreenOptions.disableCSSAnimation,
+      hideScrollBars: checkScreenOptions.hideScrollBars,
+      formatString: this.formatString,
+      nativeWebScreenshot: this.nativeWebScreenshot,
+      SAVE_TYPE,
+      tag,
+      testInBrowser: TEST_IN_BROWSER,
       toolBarShadowPadding: this.toolBarShadowPadding
     });
 
@@ -175,47 +195,28 @@ export class protractorImageComparison {
         disableCSSAnimation: checkScreenOptions.disableCSSAnimation,
         hideScrollBars: this.hideScrollBars
       },
-      instanceData);
-
-    // Get the file name
-    const fileName = formatFileName({
-      browserHeight: instanceData.browserHeight,
-      browserName: instanceData.browserName,
-      browserWidth: instanceData.browserWidth,
-      deviceName: instanceData.deviceName,
-      devicePixelRatio: instanceData.devicePixelRatio,
-      formatString: this.formatString,
-      isMobile: isMobile(instanceData.platformName),
-      name: instanceData.name,
-      logName: instanceData.logName,
-      tag,
-      testInBrowser: instanceData.testInBrowser
-    });
+      testInstanceData);
 
     // Check if the image exists
     checkImageExists({
-      actualFolder: this.actualFolder,
       autoSaveBaseline: this.autoSaveBaseline,
-      baselineFolder: this.baselineFolder,
-      fileName: fileName
+      ...this.folders,
+      fileName: testInstanceData.fileName
     });
 
     // Compare the image
     return executeImageComparison(
       {
-        actualFolder: this.actualFolder,
-        baselineFolder: this.baselineFolder,
-        diffFolder: this.diffFolder,
-        fileName: fileName
-      },
-      checkScreenOptions,
-      {
-        androidOffsets: this.androidOffsets,
         blockOutStatusBar: this.blockOutStatusBar,
         debug: this.debug,
-        iosOffsets: this.iosOffsets
-      },
-      instanceData);
+        compareOptions: checkScreenOptions,
+        offsets: {
+          android: this.androidOffsets,
+          ios: this.iosOffsets
+        },
+        folders: this.folders,
+        testInstanceData
+      });
   }
 
   /**
@@ -233,11 +234,11 @@ export class protractorImageComparison {
    * @param {SaveScreenOptions} options (non-default) options
    * @param {boolean} options.disableCSSAnimation enable or disable CSS animation
    * @param {boolean} options.hideScrollBars hide or show scrollbars
-   * @param {CurrentInstanceData} instance
+   * @param {TestInstanceData} testInstance
    * @return {Promise<void>}
    * @public
    */
-  public async saveScreen(tag: string, options?: SaveScreenOptions, instance?: CurrentInstanceData): Promise<void> {
+  public async saveScreen(tag: string, options?: SaveScreenOptions, testInstance?: TestInstanceData): Promise<void> {
     const saveScreenOptions: SaveScreenOptions = initSaveScreenOptions(
       this.disableCSSAnimation,
       this.hideScrollBars,
@@ -245,48 +246,35 @@ export class protractorImageComparison {
     );
     SAVE_TYPE.screen = true;
 
-    const instanceData: CurrentInstanceData = instance || await getCurrentInstanceData({
-      SAVE_TYPE,
-      devicePixelRatio: this.devicePixelRatio,
-      testInBrowser: TEST_IN_BROWSER,
-      nativeWebScreenshot: this.nativeWebScreenshot,
+    const testInstanceData: TestInstanceData = testInstance || await instanceInitializer({
       addressBarShadowPadding: this.addressBarShadowPadding,
-      toolBarShadowPadding: this.toolBarShadowPadding
-    });
-
-    // Set some CSS
-    await setCustomCss({
-      addressBarShadowPadding: instanceData.addressBarShadowPadding,
+      devicePixelRatio: this.devicePixelRatio,
       disableCSSAnimation: saveScreenOptions.disableCSSAnimation,
       hideScrollBars: saveScreenOptions.hideScrollBars,
-      toolBarShadowPadding: instanceData.toolBarShadowPadding
+      formatString: this.formatString,
+      nativeWebScreenshot: this.nativeWebScreenshot,
+      SAVE_TYPE,
+      tag,
+      testInBrowser: TEST_IN_BROWSER,
+      toolBarShadowPadding: this.toolBarShadowPadding
     });
 
     // Create a screenshot and save it as a buffer
     const bufferedScreenshot: Buffer = await getBufferedScreenshot();
-    const screenshotHeight: number = (bufferedScreenshot.readUInt32BE(20) / instanceData.devicePixelRatio); // width = 16
+    const screenshotHeight: number = (bufferedScreenshot.readUInt32BE(20) / testInstanceData.devicePixelRatio); // width = 16
     const rectangles: Rectangles = calculateDprRectangles({
-      height: screenshotHeight > instanceData.viewPortHeight ? screenshotHeight : instanceData.viewPortHeight,
-      width: instanceData.viewPortWidth,
+      height: screenshotHeight > testInstanceData.viewPortHeight ? screenshotHeight : testInstanceData.viewPortHeight,
+      width: testInstanceData.viewPortWidth,
       x: 0,
       y: 0
-    }, instanceData.devicePixelRatio);
+    }, testInstanceData.devicePixelRatio);
 
+    // Save the screenshot
     await saveCroppedScreenshot({
-      browserHeight: instanceData.browserHeight,
-      browserName: instanceData.browserName,
-      browserWidth: instanceData.browserWidth,
       bufferedScreenshot,
-      deviceName: instanceData.deviceName,
-      devicePixelRatio: instanceData.devicePixelRatio,
-      folder: this.actualFolder,
-      formatString: this.formatString,
-      isMobile: isMobile(instanceData.platformName),
-      name: instanceData.name,
-      logName: instanceData.logName,
-      rectangles,
-      tag,
-      testInBrowser: instanceData.testInBrowser
+      fileName: testInstanceData.fileName,
+      folder: this.folders.actualFolder,
+      rectangles
     });
   }
 }
