@@ -375,10 +375,17 @@ class protractorImageComparison {
         return new Promise(resolve => {
             resembleJS(imageComparisonPaths.baselineImage, imageComparisonPaths.actualImage, compareOptions)
                 .onComplete(data => {
+                   
                     if (Number(data.misMatchPercentage) > 0 || this.debug) {
-                        data.getDiffImage().pack().pipe(fs.createWriteStream(imageComparisonPaths.imageDiffPath));
+                        let stream = data.getDiffImage().pack();
+                        stream.pipe(fs.createWriteStream(imageComparisonPaths.imageDiffPath));
+                        stream.on('end', function () {
+                            console.log('stream ended')
+                            resolve({"diff":Number(data.misMatchPercentage),"path":imageComparisonPaths.imageDiffPath});
+                        });
+                        
                     }
-                    resolve(Number(data.misMatchPercentage));
+                    
                 });
         });
     }
